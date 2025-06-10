@@ -346,6 +346,7 @@ class ConvertActivity : AppCompatActivity() {
             putExtra(ConversionContract.EXTRA_AMOUNT,  valorEntrada)
         }
         startActivity(i)
+        finish()
 
         setValorConverter.text?.clear()
         setValorConvertido.text?.clear()

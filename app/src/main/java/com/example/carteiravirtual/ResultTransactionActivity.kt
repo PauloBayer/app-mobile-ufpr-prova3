@@ -30,19 +30,13 @@ class ResultTransactionActivity : AppCompatActivity() {
     private var valorDigitado = 0.0
     private lateinit var servicoApi: ServicoApiMoeda
     private lateinit var rootLayout: ConstraintLayout
-    private var taxaCambioAtual = 0.0
     private val formatoDecimal = DecimalFormat("#,##0.00")
     private val formatoBtc     = DecimalFormat("#,##0.0000")
-
-    val valorOriginal = intent.getDoubleExtra("valor_original", 0.0)
-    val valorConvertido = intent.getDoubleExtra("valor_convertido", 0.0)
-    val moedaOrigem = intent.getStringExtra("moeda_origem") ?: ""
-    val moedaDestino = intent.getStringExtra("moeda_destino") ?: ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_result_transaction)
-        val rootLayout = findViewById<ConstraintLayout>(R.id.result_transaction)
+        rootLayout = findViewById(R.id.result_transaction)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -86,22 +80,6 @@ class ResultTransactionActivity : AppCompatActivity() {
         textView3.visibility = View.VISIBLE
         textView5.visibility = View.VISIBLE
         textView7.visibility = View.VISIBLE
-
-
-    }
-
-    private fun simulateLoading() {
-        Thread {
-            for (i in 1..100) {
-                Thread.sleep(30)
-                runOnUiThread {
-                    progressBar.progress = i
-                }
-            }
-            runOnUiThread {
-                hideProgressBar()
-            }
-        }.start()
     }
 
     private fun buscarTaxaCambio() {
@@ -114,10 +92,21 @@ class ResultTransactionActivity : AppCompatActivity() {
                 if (resp.isSuccessful && resp.body()?.isNotEmpty() == true) {
                     val taxa = resp.body()!!.values.first().bid.toDouble()
                     aplicarConversaoSucesso(taxa)
-                } else usarTaxasMock()
+                } else {
+                    Toast.makeText(
+                        this@ResultTransactionActivity,
+                        "Falha ao buscar taxa de câmbio",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    finish()
+                }
             }
             override fun onFailure(c: Call<Map<String,TaxaCambio>>, t: Throwable) {
-                usarTaxasMock()
+                Toast.makeText(
+                    this@ResultTransactionActivity,
+                    "Falha ao buscar taxa de câmbio",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         })
     }
@@ -134,28 +123,18 @@ class ResultTransactionActivity : AppCompatActivity() {
         }
     }
 
-    private fun usarTaxasMock() {
-        val parMoedas = obterParMoedas(origem, destino)
-
-        taxaCambioAtual = when (parMoedas) {
-            "USD-BRL" -> 5.43
-            "BTC-BRL" -> 615476.0
-            "BTC-USD" -> 113350.0
-            else      -> 1.0
-        }
-        aplicarConversaoSucesso(taxaCambioAtual)
-    }
-
     private fun aplicarConversaoSucesso(taxa: Double) {
         val valorConvertido = calcularConversao(valorDigitado, taxa)
 
-        WalletRepository.add(origem,  -valorDigitado)
-        WalletRepository.add(destino,  valorConvertido)
-        hideProgressBar()
-        textView3.text = getString(R.string.textScreenResult)
-        textView5.text = "Seu novo saldo em $destino é " + formatarSaldo(destino)
+        WalletRepository.add(origem, -valorDigitado)
+        WalletRepository.add(destino, valorConvertido)
 
-        rootLayout.setOnClickListener { finish() }
+        // garante pelo menos 5 s de loader
+        rootLayout.postDelayed({
+            hideProgressBar()
+            textView3.text = getString(R.string.textScreenResult)
+            textView5.text = "Seu novo saldo em $destino é " + formatarSaldo(destino)
+        }, 5_000)   // 5000 ms
     }
 
     private fun calcularConversao(valor: Double, taxa: Double): Double = when {

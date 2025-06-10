@@ -234,37 +234,42 @@ class ConvertActivity : AppCompatActivity() {
             formatoDecimal.format(taxa)
         }
     }
-    
+
     private fun buscarTaxaCambio() {
         if (moedaOrigemSelecionada == null || moedaDestinoSelecionada == null) return
         if (moedaOrigemSelecionada == moedaDestinoSelecionada) return
-        
+
         val parMoedas = obterParMoedas(moedaOrigemSelecionada!!, moedaDestinoSelecionada!!)
-        
         barraProgresso.visibility = View.VISIBLE
-        
-        // Primeiro tenta a API real
-        servicoApi.obterTaxaCambio(parMoedas).enqueue(object : Callback<Map<String, TaxaCambio>> {
-            override fun onResponse(call: Call<Map<String, TaxaCambio>>, response: Response<Map<String, TaxaCambio>>) {
-                barraProgresso.visibility = View.GONE
-                
-                if (response.isSuccessful && response.body()?.isNotEmpty() == true) {
-                    val taxaData = response.body()!!.values.first()
-                    val taxa = taxaData.bid.toDouble()
-                    taxaCambioAtual = taxa
-                    atualizarInfoConversao()
-                    atualizarConversao()
-                } else {
-                    usarTaxasMock()
+
+        servicoApi.obterTaxaCambio(parMoedas)
+            .enqueue(object : Callback<Map<String, TaxaCambio>> {
+
+                override fun onResponse(
+                    call: Call<Map<String, TaxaCambio>>,
+                    response: Response<Map<String, TaxaCambio>>
+                ) {
+                    barraProgresso.visibility = View.GONE
+
+                    if (response.isSuccessful && response.body()?.isNotEmpty() == true) {
+                        val taxa = response.body()!!.values.first().bid.toDouble()
+                        taxaCambioAtual = taxa          // <-- OK
+                        atualizarInfoConversao()
+                        atualizarConversao()
+                    } else {
+                        avisarFalha()
+                    }
                 }
-            }
-            
-            override fun onFailure(call: Call<Map<String, TaxaCambio>>, t: Throwable) {
-                barraProgresso.visibility = View.GONE
-                usarTaxasMock()
-            }
-        })
-    }
+
+                override fun onFailure(
+                    call: Call<Map<String, TaxaCambio>>,
+                    t: Throwable
+                ) {
+                    barraProgresso.visibility = View.GONE
+                    avisarFalha()
+                }
+            })
+        }
     
     private fun obterParMoedas(de: String, para: String): String {
         return when {
@@ -387,21 +392,16 @@ class ConvertActivity : AppCompatActivity() {
         }
         return "$formatado $moeda"
     }
-    
-    private fun usarTaxasMock() {
-        val parMoedas = obterParMoedas(moedaOrigemSelecionada!!, moedaDestinoSelecionada!!)
-        
-        taxaCambioAtual = when (parMoedas) {
-            "USD-BRL" -> 5.43
-            "BTC-BRL" -> 615476.0
-            "BTC-USD" -> 113350.0
-            else -> 1.0
-        }
-        
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            atualizarInfoConversao()
-            atualizarConversao()
-        }, 500)
+
+    private fun avisarFalha() {
+        Toast.makeText(
+            this,
+            "Não foi possível obter a taxa de câmbio. Tente novamente mais tarde.",
+            Toast.LENGTH_LONG
+        ).show()
+
+        taxaCambioAtual = 0.0
+        atualizarInfoConversao()
     }
 }
 

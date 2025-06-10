@@ -47,9 +47,9 @@ class ConvertActivity : AppCompatActivity() {
     private var moedaDestinoSelecionada: String? = null
     private var taxaCambioAtual: Double = 0.0
     
-    private var saldoBRL = 100000.00
-    private var saldoUSD = 50000.00
-    private var saldoBTC = 0.5000
+    private fun obterSaldoBRL(): Double = WalletRepository.balances["BRL"] ?: 100000.00
+    private fun obterSaldoUSD(): Double = WalletRepository.balances["USD"] ?: 50000.00
+    private fun obterSaldoBTC(): Double = WalletRepository.balances["BTC"] ?: 0.5000
     
     private val formatoDecimal = DecimalFormat("#,##0.00")
     private val formatoBtc = DecimalFormat("#,##0.0000")
@@ -343,33 +343,33 @@ class ConvertActivity : AppCompatActivity() {
     
     private fun temSaldoSuficiente(valor: Double): Boolean {
         return when (moedaOrigemSelecionada) {
-            "BRL" -> saldoBRL >= valor
-            "USD" -> saldoUSD >= valor
-            "BTC" -> saldoBTC >= valor
+            "BRL" -> obterSaldoBRL() >= valor
+            "USD" -> obterSaldoUSD() >= valor
+            "BTC" -> obterSaldoBTC() >= valor
             else -> false
         }
     }
     
     private fun atualizarSaldosAposConversao(valorOriginal: Double, valorConvertido: Double) {
         when (moedaOrigemSelecionada) {
-            "BRL" -> saldoBRL -= valorOriginal
-            "USD" -> saldoUSD -= valorOriginal
-            "BTC" -> saldoBTC -= valorOriginal
+            "BRL" -> WalletRepository.add("BRL", -valorOriginal)
+            "USD" -> WalletRepository.add("USD", -valorOriginal)
+            "BTC" -> WalletRepository.add("BTC", -valorOriginal)
         }
         
         when (moedaDestinoSelecionada) {
-            "BRL" -> saldoBRL += valorConvertido
-            "USD" -> saldoUSD += valorConvertido
-            "BTC" -> saldoBTC += valorConvertido
+            "BRL" -> WalletRepository.add("BRL", valorConvertido)
+            "USD" -> WalletRepository.add("USD", valorConvertido)
+            "BTC" -> WalletRepository.add("BTC", valorConvertido)
         }
         
         atualizarSaldos()
     }
     
     private fun atualizarSaldos() {
-        tvSaldoBrl.text = formatoDecimal.format(saldoBRL)
-        tvSaldoUsd.text = formatoDecimal.format(saldoUSD)
-        tvSaldoBtc.text = formatoBtc.format(saldoBTC)
+        tvSaldoBrl.text = formatoDecimal.format(obterSaldoBRL())
+        tvSaldoUsd.text = formatoDecimal.format(obterSaldoUSD())
+        tvSaldoBtc.text = formatoBtc.format(obterSaldoBTC())
     }
     
     private fun formatarValor(valor: Double, moeda: String): String {

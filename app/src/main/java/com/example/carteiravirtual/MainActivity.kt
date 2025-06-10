@@ -54,13 +54,6 @@ class MainActivity : AppCompatActivity() {
         b.btnConvert.setOnClickListener {
             startActivity(Intent(this, ConvertActivity::class.java))
         }
-        
-        abrirTelaConversao()
-    }
-    
-    private fun abrirTelaConversao() {
-        val intent = Intent(this, ConvertActivity::class.java)
-        startActivity(intent)
     }
 
     private fun addTransaction(desc: String) {

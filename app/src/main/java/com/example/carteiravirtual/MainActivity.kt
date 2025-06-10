@@ -1,5 +1,6 @@
 package com.example.carteiravirtual
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -16,5 +17,12 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        
+        abrirTelaConversao()
+    }
+    
+    private fun abrirTelaConversao() {
+        val intent = Intent(this, ConvertActivity::class.java)
+        startActivity(intent)
     }
 }

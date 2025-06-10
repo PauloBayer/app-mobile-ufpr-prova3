@@ -1,5 +1,6 @@
 package com.example.carteiravirtual
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -25,8 +26,8 @@ import java.util.concurrent.TimeUnit
 
 class ConvertActivity : AppCompatActivity() {
 
-    private lateinit var etValorConverter: EditText
-    private lateinit var etValorConvertido: EditText
+    private lateinit var setValorConverter: EditText
+    private lateinit var setValorConvertido: EditText
     private lateinit var tvInfoConversao: TextView
     private lateinit var btnConverter: MaterialButton
     private lateinit var barraProgresso: ProgressBar
@@ -63,12 +64,11 @@ class ConvertActivity : AppCompatActivity() {
         inicializarViews()
         configurarRetrofit()
         configurarListeners()
-        atualizarSaldos()
     }
     
     private fun inicializarViews() {
-        etValorConverter = findViewById(R.id.et_valor_converter)
-        etValorConvertido = findViewById(R.id.et_valor_convertido)
+        setValorConverter = findViewById(R.id.et_valor_converter)
+        setValorConvertido = findViewById(R.id.et_valor_convertido)
         tvInfoConversao = findViewById(R.id.tv_conversion_info)
         btnConverter = findViewById(R.id.btn_converter)
         barraProgresso = findViewById(R.id.progress_bar)
@@ -111,7 +111,7 @@ class ConvertActivity : AppCompatActivity() {
         cardUsdDestino.setOnClickListener { selecionarMoedaDestino("USD") }
         cardBtcDestino.setOnClickListener { selecionarMoedaDestino("BTC") }
         
-        etValorConverter.addTextChangedListener(object : TextWatcher {
+        setValorConverter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
@@ -218,7 +218,7 @@ class ConvertActivity : AppCompatActivity() {
             
             val info = "1 $moedaOrigemSelecionada = ${formatarTaxa(taxaCambioAtual)} $moedaDestinoSelecionada"
             tvInfoConversao.text = info
-            btnConverter.isEnabled = etValorConverter.text.toString().isNotEmpty()
+            btnConverter.isEnabled = setValorConverter.text.toString().isNotEmpty()
         } else {
             tvInfoConversao.text = "Selecione moedas para conversão"
             btnConverter.isEnabled = false
@@ -277,9 +277,9 @@ class ConvertActivity : AppCompatActivity() {
     }
     
     private fun atualizarConversao() {
-        val textoEntrada = etValorConverter.text.toString()
+        val textoEntrada = setValorConverter.text.toString()
         if (textoEntrada.isEmpty() || taxaCambioAtual == 0.0) {
-            etValorConvertido.setText("")
+            setValorConvertido.setText("")
             return
         }
         
@@ -293,9 +293,9 @@ class ConvertActivity : AppCompatActivity() {
                 formatoDecimal.format(valorConvertido)
             }
             
-            etValorConvertido.setText(valorFormatado)
+            setValorConvertido.setText(valorFormatado)
         } catch (e: NumberFormatException) {
-            etValorConvertido.setText("")
+            setValorConvertido.setText("")
         }
     }
     
@@ -310,35 +310,40 @@ class ConvertActivity : AppCompatActivity() {
             else -> valor
         }
     }
-    
+
     private fun realizarConversao() {
-        val textoEntrada = etValorConverter.text.toString()
-        if (textoEntrada.isEmpty()) {
-            Toast.makeText(this, "Digite um valor para conversão", Toast.LENGTH_SHORT).show()
+        if (moedaOrigemSelecionada == null || moedaDestinoSelecionada == null) {
+            Toast.makeText(this, "Escolha moeda de origem e destino", Toast.LENGTH_SHORT).show()
             return
         }
-        
-        try {
-            val valorEntrada = textoEntrada.toDouble()
-            
-            if (!temSaldoSuficiente(valorEntrada)) {
-                Toast.makeText(this, "Saldo insuficiente para esta conversão", Toast.LENGTH_SHORT).show()
-                return
-            }
-            
-            val valorConvertido = calcularConversao(valorEntrada)
-            
-            atualizarSaldosAposConversao(valorEntrada, valorConvertido)
-            
-            val mensagem = "Conversão realizada!\n${formatarValor(valorEntrada, moedaOrigemSelecionada!!)} → ${formatarValor(valorConvertido, moedaDestinoSelecionada!!)}"
-            Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show()
-            
-            etValorConverter.setText("")
-            etValorConvertido.setText("")
-            
-        } catch (e: NumberFormatException) {
-            Toast.makeText(this, "Valor inválido", Toast.LENGTH_SHORT).show()
+        if (moedaOrigemSelecionada == moedaDestinoSelecionada) {
+            Toast.makeText(this, "Selecione moedas diferentes", Toast.LENGTH_SHORT).show()
+            return
         }
+
+        val textoEntrada = setValorConverter.text.toString()
+        val valorEntrada = textoEntrada.toDoubleOrNull()
+        if (valorEntrada == null || valorEntrada <= 0) {
+            Toast.makeText(this, "Digite um valor válido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!temSaldoSuficiente(valorEntrada)) {
+            Toast.makeText(this, "Saldo insuficiente", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val i = Intent(this, ResultTransactionActivity::class.java).apply {
+            putExtra(ConversionContract.EXTRA_ORIGIN,  moedaOrigemSelecionada)
+            putExtra(ConversionContract.EXTRA_DEST,    moedaDestinoSelecionada)
+            putExtra(ConversionContract.EXTRA_AMOUNT,  valorEntrada)
+        }
+        startActivity(i)
+
+        setValorConverter.text?.clear()
+        setValorConvertido.text?.clear()
+        btnConverter.isEnabled = false
+        tvInfoConversao.text = "Selecione moedas para conversão"
     }
     
     private fun temSaldoSuficiente(valor: Double): Boolean {
@@ -348,28 +353,6 @@ class ConvertActivity : AppCompatActivity() {
             "BTC" -> obterSaldoBTC() >= valor
             else -> false
         }
-    }
-    
-    private fun atualizarSaldosAposConversao(valorOriginal: Double, valorConvertido: Double) {
-        when (moedaOrigemSelecionada) {
-            "BRL" -> WalletRepository.add("BRL", -valorOriginal)
-            "USD" -> WalletRepository.add("USD", -valorOriginal)
-            "BTC" -> WalletRepository.add("BTC", -valorOriginal)
-        }
-        
-        when (moedaDestinoSelecionada) {
-            "BRL" -> WalletRepository.add("BRL", valorConvertido)
-            "USD" -> WalletRepository.add("USD", valorConvertido)
-            "BTC" -> WalletRepository.add("BTC", valorConvertido)
-        }
-        
-        atualizarSaldos()
-    }
-    
-    private fun atualizarSaldos() {
-        tvSaldoBrl.text = formatoDecimal.format(obterSaldoBRL())
-        tvSaldoUsd.text = formatoDecimal.format(obterSaldoUSD())
-        tvSaldoBtc.text = formatoBtc.format(obterSaldoBTC())
     }
     
     private fun formatarValor(valor: Double, moeda: String): String {

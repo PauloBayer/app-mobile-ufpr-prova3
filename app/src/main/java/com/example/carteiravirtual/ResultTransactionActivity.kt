@@ -17,6 +17,11 @@ class ResultTransactionActivity : AppCompatActivity() {
     private lateinit var textView5: TextView
     private lateinit var textView7: TextView
 
+    val valorOriginal = intent.getDoubleExtra("valor_original", 0.0)
+    val valorConvertido = intent.getDoubleExtra("valor_convertido", 0.0)
+    val moedaOrigem = intent.getStringExtra("moeda_origem") ?: ""
+    val moedaDestino = intent.getStringExtra("moeda_destino") ?: ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_result_transaction)
@@ -25,6 +30,7 @@ class ResultTransactionActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+
         }
 
         progressBar = findViewById(R.id.progressBar)

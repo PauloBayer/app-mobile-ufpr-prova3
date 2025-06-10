@@ -22,6 +22,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import java.text.DecimalFormat
 import java.util.concurrent.TimeUnit
+import android.content.Intent
 
 class ConvertActivity : AppCompatActivity() {
 
@@ -120,6 +121,7 @@ class ConvertActivity : AppCompatActivity() {
         })
         
         btnConverter.setOnClickListener {
+
             realizarConversao()
         }
     }
@@ -327,7 +329,12 @@ class ConvertActivity : AppCompatActivity() {
             }
             
             val valorConvertido = calcularConversao(valorEntrada)
-            
+            intent.putExtra("valor_original", valorEntrada)
+            intent.putExtra("valor_convertido", valorConvertido)
+            intent.putExtra("moeda_origem", moedaOrigemSelecionada)
+            intent.putExtra("moeda_destino", moedaDestinoSelecionada)
+            startActivity(Intent(this, ResultTransactionActivity::class.java))
+
             atualizarSaldosAposConversao(valorEntrada, valorConvertido)
             
             val mensagem = "Conversão realizada!\n${formatarValor(valorEntrada, moedaOrigemSelecionada!!)} → ${formatarValor(valorConvertido, moedaDestinoSelecionada!!)}"

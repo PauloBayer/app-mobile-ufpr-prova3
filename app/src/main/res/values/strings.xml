@@ -3,4 +3,7 @@
     <string name="title_carteira_virtual">Carteira Virtual</string>
     <string name="label_balances">Moedas</string>
     <string name="label_transactions">Transações</string>
+    <string name="convertendo_moedas">Convertendo moedas</string>
+    <string name="textScreenResult">Dados da transação</string>
+    <string name="textViewSucessMessage">Moedas convertidas com sucesso!</string>
 </resources>

@@ -1,6 +1,5 @@
 package com.example.carteiravirtual
 
-import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -23,6 +22,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import java.text.DecimalFormat
 import java.util.concurrent.TimeUnit
+import android.content.Intent
 
 class ConvertActivity : AppCompatActivity() {
 
@@ -64,6 +64,7 @@ class ConvertActivity : AppCompatActivity() {
         inicializarViews()
         configurarRetrofit()
         configurarListeners()
+        atualizarSaldos()
     }
     
     private fun inicializarViews() {
@@ -120,6 +121,7 @@ class ConvertActivity : AppCompatActivity() {
         })
         
         btnConverter.setOnClickListener {
+
             realizarConversao()
         }
     }
@@ -353,6 +355,28 @@ class ConvertActivity : AppCompatActivity() {
             "BTC" -> obterSaldoBTC() >= valor
             else -> false
         }
+    }
+    
+    private fun atualizarSaldosAposConversao(valorOriginal: Double, valorConvertido: Double) {
+        when (moedaOrigemSelecionada) {
+            "BRL" -> WalletRepository.add("BRL", -valorOriginal)
+            "USD" -> WalletRepository.add("USD", -valorOriginal)
+            "BTC" -> WalletRepository.add("BTC", -valorOriginal)
+        }
+        
+        when (moedaDestinoSelecionada) {
+            "BRL" -> WalletRepository.add("BRL", valorConvertido)
+            "USD" -> WalletRepository.add("USD", valorConvertido)
+            "BTC" -> WalletRepository.add("BTC", valorConvertido)
+        }
+        
+        atualizarSaldos()
+    }
+    
+    private fun atualizarSaldos() {
+        tvSaldoBrl.text = formatoDecimal.format(obterSaldoBRL())
+        tvSaldoUsd.text = formatoDecimal.format(obterSaldoUSD())
+        tvSaldoBtc.text = formatoBtc.format(obterSaldoBTC())
     }
     
     private fun formatarValor(valor: Double, moeda: String): String {

@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">CarteiraVirtual</string>
+    <string name="title_carteira_virtual">Carteira Virtual</string>
+    <string name="label_balances">Moedas</string>
+    <string name="label_transactions">Transações</string>
 </resources>

@@ -47,13 +47,14 @@ class ConvertActivity : AppCompatActivity() {
     private var moedaOrigemSelecionada: String? = null
     private var moedaDestinoSelecionada: String? = null
     private var taxaCambioAtual: Double = 0.0
+    private var atualizandoConversao = false
     
     private fun obterSaldoBRL(): Double = WalletRepository.balances["BRL"] ?: 100000.00
     private fun obterSaldoUSD(): Double = WalletRepository.balances["USD"] ?: 50000.00
     private fun obterSaldoBTC(): Double = WalletRepository.balances["BTC"] ?: 0.5000
     
     private val formatoDecimal = DecimalFormat("#,##0.00")
-    private val formatoBtc = DecimalFormat("#,##0.0000")
+    private val formatoBtc = DecimalFormat("#,##0.00000000")
     
     private lateinit var servicoApi: ServicoApiMoeda
     
@@ -116,7 +117,10 @@ class ConvertActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                atualizarConversao()
+                if (!atualizandoConversao) {
+                    atualizarConversao()
+                    atualizarInfoConversao()
+                }
             }
         })
         
@@ -218,15 +222,28 @@ class ConvertActivity : AppCompatActivity() {
                 return
             }
             
-            val info = "1 $moedaOrigemSelecionada = ${formatarTaxa(taxaCambioAtual)} $moedaDestinoSelecionada"
+            val taxaExibir = obterTaxaParaExibicao()
+            val info = "1 $moedaOrigemSelecionada = ${formatarTaxa(taxaExibir)} $moedaDestinoSelecionada"
             tvInfoConversao.text = info
-            btnConverter.isEnabled = setValorConverter.text.toString().isNotEmpty()
+            btnConverter.isEnabled = setValorConverter.text.toString().isNotEmpty() && taxaCambioAtual > 0.0
         } else {
             tvInfoConversao.text = "Selecione moedas para conversão"
             btnConverter.isEnabled = false
         }
     }
     
+    private fun obterTaxaParaExibicao(): Double {
+        return when {
+            moedaOrigemSelecionada == "BRL" && moedaDestinoSelecionada == "USD" -> 1.0 / taxaCambioAtual
+            moedaOrigemSelecionada == "USD" && moedaDestinoSelecionada == "BRL" -> taxaCambioAtual
+            moedaOrigemSelecionada == "BRL" && moedaDestinoSelecionada == "BTC" -> 1.0 / taxaCambioAtual
+            moedaOrigemSelecionada == "BTC" && moedaDestinoSelecionada == "BRL" -> taxaCambioAtual
+            moedaOrigemSelecionada == "USD" && moedaDestinoSelecionada == "BTC" -> 1.0 / taxaCambioAtual
+            moedaOrigemSelecionada == "BTC" && moedaDestinoSelecionada == "USD" -> taxaCambioAtual
+            else -> taxaCambioAtual
+        }
+    }
+
     private fun formatarTaxa(taxa: Double): String {
         return if (moedaDestinoSelecionada == "BTC") {
             formatoBtc.format(taxa)
@@ -253,7 +270,7 @@ class ConvertActivity : AppCompatActivity() {
 
                     if (response.isSuccessful && response.body()?.isNotEmpty() == true) {
                         val taxa = response.body()!!.values.first().bid.toDouble()
-                        taxaCambioAtual = taxa          // <-- OK
+                        taxaCambioAtual = taxa
                         atualizarInfoConversao()
                         atualizarConversao()
                     } else {
@@ -286,7 +303,9 @@ class ConvertActivity : AppCompatActivity() {
     private fun atualizarConversao() {
         val textoEntrada = setValorConverter.text.toString()
         if (textoEntrada.isEmpty() || taxaCambioAtual == 0.0) {
+            atualizandoConversao = true
             setValorConvertido.setText("")
+            atualizandoConversao = false
             return
         }
         
@@ -300,9 +319,13 @@ class ConvertActivity : AppCompatActivity() {
                 formatoDecimal.format(valorConvertido)
             }
             
+            atualizandoConversao = true
             setValorConvertido.setText(valorFormatado)
+            atualizandoConversao = false
         } catch (e: NumberFormatException) {
+            atualizandoConversao = true
             setValorConvertido.setText("")
+            atualizandoConversao = false
         }
     }
     

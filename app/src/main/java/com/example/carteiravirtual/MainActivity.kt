@@ -19,10 +19,12 @@ class MainActivity : AppCompatActivity() {
         Transaction("BRL ==> USD:       +1.000 USD")
     )
 
-    private fun currentWallet(): List<Balance> =
-        WalletRepository.balances
+    private fun currentWallet(): List<Balance> {
+        val order = listOf("BRL", "USD", "BTC")
+        return WalletRepository.balances
             .map { (code, amount) -> Balance(code, amount) }
-            .sortedBy { it.code }
+            .sortedBy { order.indexOf(it.code) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +54,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         b.btnConvert.setOnClickListener {
-            startActivity(Intent(this, ConvertActivity::class.java))
+            val intent = Intent(this, ConvertActivity::class.java)
+            startActivity(intent)
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
     }
 
